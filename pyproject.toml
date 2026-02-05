@@ -1,31 +1,59 @@
 [tool.poetry]
-name = "tdd project"
-version = "0.0.1"
-description = ""
-authors = ["Nayanna Nara <nayanna501@gmail.com>"]
+name = "tdd-store-api"
+version = "0.1.0"
+description = "Store API robusta com FastAPI, MongoDB e TDD - Desafio DIO"
+authors = ["Cristiano Pessoa <cristiano.1973.on@gmail.com>"]
 readme = "README.md"
+package-mode = false
 
 [tool.poetry.dependencies]
-python = "^3.12"
-fastapi = "^0.104.1"
-uvicorn = "^0.24.0.post1"
-pydantic = "^2.5.1"
-pydantic-settings = "^2.1.0"
-motor = "^3.3.1"
-pytest = "^7.4.3"
-pytest-asyncio = "^0.21.1"
-pre-commit = "^3.5.0"
-httpx = "^0.25.1"
+python = "^3.13"
+fastapi = "^0.115.0"              # Versão estável com suporte total a Pydantic V2
+uvicorn = {extras = ["standard"], version = "^0.30.0"} # Inclui uvloop para performance
+pydantic = "^2.9.0"               # Core do Pydantic V2 (em Rust)
+pydantic-settings = "^2.5.0"      # Gestão de .env separada no V2
+motor = "^3.6.0"                  # Driver assíncrono para MongoDB
+certifi = "^2024.8.30"
 
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.0"                 # Versão moderna do Pytest
+pytest-asyncio = "^0.24.0"        # Essencial para testes assíncronos
+pytest-cov = "^5.0.0"             # Para medir a cobertura de testes
+httpx = "^0.27.0"                 # Cliente HTTP para testes de integração
+ruff = "^0.6.0"                   # O linter/formatter mais rápido (substitui Black/Isort/Flake8)
+pre-commit = "^3.8.0"
+taskipy = "^1.13.0"               # Facilitador de comandos (substitui bem o Makefile)
+
+[tool.ruff]
+# Configurações gerais
+target-version = "py313"
+line-length = 88
+
+[tool.ruff.lint]
+# Movemos o 'select' para dentro da seção 'lint'
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort (organização de imports)
+    "B",  # flake8-bugbear
+    "C4", # flake8-comprehensions
+]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-addopts = [
-  "--strict-config",
-  "--strict-markers",
-  "--ignore=docs_src",
+testpaths = ["tests"]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::UserWarning",
+    "ignore:datetime.datetime.utcnow:DeprecationWarning",
 ]
-xfail_strict = true
-junit_family = "xunit2"
+
+[tool.taskipy.tasks]
+run = "uvicorn store.main:app --reload"
+test = "pytest"
+post_test = "ruff check . && ruff format ."
+lint = "ruff check . --fix"
+format = "ruff format ."
 
 [build-system]
 requires = ["poetry-core"]

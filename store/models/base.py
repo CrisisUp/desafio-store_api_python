@@ -18,5 +18,4 @@ class CreateBaseModel(BaseModel):
         for key, value in self_dict.items():
             if isinstance(value, Decimal):
                 self_dict[key] = Decimal128(str(value))
-
         return self_dict

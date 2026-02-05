@@ -1,5 +1,5 @@
 from typing import List
-from fastapi import APIRouter, Body, Depends, HTTPException, Path, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query, status
 from pydantic import UUID4
 from store.core.exceptions import NotFoundException
 
@@ -20,15 +20,16 @@ async def post(
 async def get(
     id: UUID4 = Path(alias="id"), usecase: ProductUsecase = Depends()
 ) -> ProductOut:
-    try:
-        return await usecase.get(id=id)
-    except NotFoundException as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=exc.message)
-
-
+    return await usecase.get(id=id)
+    
+    
 @router.get(path="/", status_code=status.HTTP_200_OK)
-async def query(usecase: ProductUsecase = Depends()) -> List[ProductOut]:
-    return await usecase.query()
+async def query(
+    min_price: float = Query(None),
+    max_price: float = Query(None),
+    usecase: ProductUsecase = Depends(),
+) -> List[ProductOut]:
+    return await usecase.query(min_price=min_price, max_price=max_price)
 
 
 @router.patch(path="/{id}", status_code=status.HTTP_200_OK)

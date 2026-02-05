@@ -1,12 +1,12 @@
 from datetime import datetime
 from decimal import Decimal
+from typing import Any
 from bson import Decimal128
-from pydantic import UUID4, BaseModel, Field, model_validator
+from pydantic import UUID4, BaseModel, Field, model_validator, ConfigDict
 
 
 class BaseSchemaMixin(BaseModel):
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True, arbitrary_types_allowed=True)
 
 
 class OutSchema(BaseModel):
@@ -15,9 +15,10 @@ class OutSchema(BaseModel):
     updated_at: datetime = Field()
 
     @model_validator(mode="before")
-    def set_schema(cls, data):
-        for key, value in data.items():
-            if isinstance(value, Decimal128):
-                data[key] = Decimal(str(value))
-
+    @classmethod
+    def set_schema(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            for key, value in data.items():
+                if isinstance(value, Decimal128):
+                    data[key] = Decimal(str(value))
         return data

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Store API - Painel de Controle</title>
+    <style>
+    :root {
+        --primary: #4f46e5;
+        --success: #10b981;
+        --danger: #ef4444;
+        --bg: #f8fafc;
+        --card: #ffffff;
+        --text: #1e293b;
+    }
+
+    body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 40px; }
+    .container { max-width: 900px; margin: auto; background: var(--card); padding: 40px; border-radius: 16px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); }
+    
+    h1 { font-size: 2rem; font-weight: 800; letter-spacing: -0.025em; margin-bottom: 30px; display: flex; align-items: center; gap: 12px; }
+    h2 { font-size: 1rem; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; margin-top: 30px; }
+
+    /* Grid do Formulário */
+    .form-group { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 12px; margin-bottom: 32px; background: #f1f5f9; padding: 24px; border-radius: 12px; }
+    .full-width { grid-column: span 3; }
+    
+    input { 
+        padding: 12px 16px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; transition: all 0.2s; outline: none;
+    }
+    input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
+
+    /* Alinhamento Perfeito dos Filtros */
+    .controls { display: flex; gap: 12px; margin-bottom: 24px; }
+    .controls input, .controls button { height: 45px; box-sizing: border-box; }
+    .controls input { flex: 1; }
+
+    /* Cards de Produto Estilo Dashboard */
+    .product-card { 
+        border: 1px solid #f1f5f9; padding: 20px; margin-bottom: 12px; border-radius: 12px; 
+        display: flex; justify-content: space-between; align-items: center; background: #fff;
+    }
+    .product-info h3 { margin: 0; font-size: 1.1rem; }
+    .product-info p { margin: 4px 0 0; color: #64748b; font-size: 0.875rem; }
+
+    /* Botões Modernos */
+    button { 
+        cursor: pointer; border: none; border-radius: 8px; font-weight: 600; font-size: 14px;
+        transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    button:active { transform: scale(0.98); }
+
+    .btn-add { background: var(--primary); color: white; grid-column: span 3; padding: 14px; }
+    .btn-filter { background: var(--text); color: white; padding: 0 24px; }
+    .btn-delete { background: #fee2e2; color: var(--danger); padding: 8px 16px; }
+    .btn-delete:hover { background: var(--danger); color: white; }
+
+    .price-tag { font-size: 1.25rem; font-weight: 700; color: var(--success); }
+    
+    /* Feedback de carregamento */
+    .loading { text-align: center; padding: 40px; color: #94a3b8; }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🛒 Gerenciador de Estoque Python</h1>
+
+    <h2>Novo Produto</h2>
+    <div class="form-group">
+        <input type="text" id="newName" placeholder="Nome do Produto (ex: Teclado Mecânico)" class="full-width">
+        <input type="number" id="newQuantity" placeholder="Quantidade em Estoque">
+        <input type="text" id="newPrice" placeholder="Preço (ex: 250.00)">
+        <button class="btn-add" onclick="addProduct()">➕ Cadastrar no MongoDB</button>
+    </div>
+
+    <h2>Filtros de Preço</h2>
+    <div class="controls">
+        <input type="number" id="minPrice" placeholder="Mín: 0">
+        <input type="number" id="maxPrice" placeholder="Máx: 10000">
+        <button class="btn-filter" onclick="fetchProducts()">🔍 Filtrar Agora</button>
+    </div>
+
+    <div id="productList">Carregando estoque...</div>
+</div>
+
+<script>
+    const API_URL = "http://localhost:8000/products/";
+
+    // Função para buscar produtos (incluindo filtros)
+    async function fetchProducts() {
+        const min = document.getElementById('minPrice').value;
+        const max = document.getElementById('maxPrice').value;
+        
+        let url = API_URL;
+        const params = new URLSearchParams();
+        if (min) params.append('min_price', min);
+        if (max) params.append('max_price', max);
+        
+        if (params.toString()) url += `?${params.toString()}`;
+
+        try {
+            const response = await fetch(url);
+            const data = await response.json();
+            renderProducts(data);
+        } catch (error) {
+            console.error("Erro ao carregar dados:", error);
+        }
+    }
+
+    // Função para ADICIONAR produto (POST)
+    async function addProduct() {
+        const btn = document.querySelector('.btn-add');
+        const payload = {
+            name: document.getElementById('newName').value,
+            quantity: parseInt(document.getElementById('newQuantity').value),
+            price: document.getElementById('newPrice').value,
+            status: true
+        };
+
+        if (!payload.name || isNaN(payload.quantity) || !payload.price) {
+            alert("⚠️ Preencha todos os campos corretamente.");
+            return;
+        }
+
+        btn.innerText = "⏳ Processando...";
+        btn.disabled = true;
+
+        try {
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.status === 409) {
+                const err = await response.json();
+                alert(`🚫 Conflito: ${err.detail}`);
+            } else if (response.ok) {
+                // Limpar formulário com elegância
+                document.querySelectorAll('.form-group input').forEach(i => i.value = '');
+                fetchProducts();
+            }
+        } catch (error) {
+            alert("❌ Erro de conexão com a API.");
+        } finally {
+            btn.innerText = "➕ Cadastrar no MongoDB";
+            btn.disabled = false;
+        }
+    }
+
+    function renderProducts(products) {
+        const list = document.getElementById('productList');
+        if (!products || products.length === 0) {
+            list.innerHTML = "<p style='text-align:center; color:#999;'>Nenhum produto ativo encontrado.</p>";
+            return;
+        }
+
+        list.innerHTML = products.map(p => `
+            <div class="product-card">
+                <div>
+                    <strong style="font-size: 1.1rem;">${p.name}</strong><br>
+                    <small>Estoque: ${p.quantity} unidades</small>
+                </div>
+                <div>
+                    <span class="price-tag">R$ ${p.price}</span>
+                    <button class="btn-delete" style="margin-left: 15px;" onclick="deleteProduct('${p.id}')">Excluir</button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    async function deleteProduct(id) {
+        if (!confirm("Confirmar exclusão (Soft Delete)?")) return;
+        await fetch(`${API_URL}${id}`, { method: 'DELETE' });
+        fetchProducts();
+    }
+
+    fetchProducts();
+</script>
+
+</body>
+</html>

@@ -1,189 +1,123 @@
-# TDD Project
+# 🛒 Store API - Modern Stack Python 2026
 
-## O que é TDD?
-TDD é uma sigla para `Test Driven Development`, ou Desenvolvimento Orientado a Testes. A ideia do TDD é que você trabalhe em ciclos.
+## 🚀 Sobre o Projeto
 
-### Ciclo do TDD
-![C4](/docs/img/img-tdd.png)
+### Esta é uma API de gerenciamento de estoque desenvolvida com foco em **TDD (Test Driven Development)** e alta performance
 
-### Vantagens do TDD
-- entregar software de qualidade;
-- testar procurando possíveis falhas;
-- criar testes de integração, testes isolados (unitários);
-- evitar escrever códigos complexos ou que não sigam os pré-requisitos necessários;
+### O projeto foi modernizado para as versões mais recentes do ecossistema Python, garantindo tipagem estrita e integridade de dados financeiros.
 
-A proposta do TDD é que você codifique antes mesmo do código existir, isso nos garante mais qualidade no nosso projeto. Além de que, provavelmente se você deixar pra fazer os testes no final, pode acabar não fazendo. Com isso, sua aplicação perde qualidade e está muito mais propensa a erros.
+## Principais Tecnologias
 
-# Store API
-## Resumo do projeto
-Este documento traz informações do desenvolvimento de uma API em FastAPI a partir do TDD.
+* ### **Python 3.13**: Performance otimizada e novas funcionalidades da linguagem
 
-## Objetivo
-Essa aplicação tem como objetivo principal trazer conhecimentos sobre o TDD, na prática, desenvolvendo uma API com o Framework Python, FastAPI. Utilizando o banco de dados MongoDB, para validações o Pydantic, para os testes Pytest e entre outras bibliotecas.
+* ### **FastAPI**: Framework moderno para construção de APIs rápidas
 
-## O que é?
-Uma aplicação que:
-- tem fins educativos;
-- permite o aprendizado prático sobre TDD com FastAPI + Pytest;
+* ### **Pydantic V2**: Validação de dados de alta performance
 
-## O que não é?
-Uma aplicação que:
-- se comunica com apps externas;
+* ### **MongoDB & Motor**: Persistência de dados NoSQL assíncrona
 
+* ### **Pytest**: Suíte de testes automatizados com cobertura completa (20/20 PASSED)
 
-## Solução Proposta
-Desenvolvimento de uma aplicação simples a partir do TDD, que permite entender como criar tests com o `pytest`. Construindo testes de Schemas, Usecases e Controllers (teste de integração).
+* ### **Ruff**: Linting e formatação de código ultra-rápida
 
-### Arquitetura
-|![C4](/docs/img/store.drawio.png)|
-|:--:|
-| Diagrama de C4 da Store API |
+---
 
-### Banco de dados - MongoDB
-|![C4](/docs/img/product.drawio.png)|
-|:--:|
-| Database - Store API |
+## 🏗️ Diferenciais de Engenharia
 
+### 💰 Precisão Financeira com Decimal128
 
-## StoreAPI
-### Diagramas de sequência para o módulo de Produtos
-#### Diagrama de criação de produto
+### Diferente de implementações simples que usam `float`, este projeto utiliza `Decimal128` no MongoDB e `Decimal` no Python
+
+### Isso evita erros de arredondamento em cálculos monetários, garantindo que **0.1 + 0.2 seja exatamente 0.3**
+
+## 🛡️ Estratégia de Soft Delete
+
+Para manter a integridade histórica do estoque, implementamos o **Soft Delete**:
+
+* ### **Exclusão Lógica**: Produtos "excluídos" são apenas marcados com `is_active: False`
+
+* ### **Filtros Nativos**: Consultas e filtros ignoram automaticamente itens inativos no banco
+
+* ### **Auditoria**: Os dados permanecem na base para verificações futuras e recuperação
+
+## ⚡ Frontend Integrado
+
+### O projeto acompanha um dashboard moderno (HTML5/JS) que consome a API em tempo real
+
+* ### **Cadastro Dinâmico**: Inclusão de produtos com feedback imediato
+  
+* ### **Performance**: Filtros de preço processados diretamente no motor do MongoDB
+  
+* ### **Interatividade**: Exclusão visual com atualização em tempo real (UI/UX)
+
+---
+
+## 📊 Diagramas de Sequência
+
+### Criação com Validação de Conflito (409)
 
 ```mermaid
 sequenceDiagram
-    title Create Product
-    Client->>+API: Request product creation
-    Note right of Client: POST /products
+    participant C as Client
+    participant A as API
+    participant D as Database
 
-    API->>API: Validate body
-
-    alt Invalid body
-        API->Client: Error Response
-        Note right of Client: Status Code: 422 - Unprocessable Entity
+    C->>+A: POST /products
+    A->>A: Validate Schema (Pydantic V2)
+    A->>+D: Check if Name Exists
+    D-->>-A: Result
+    alt Name Exists
+        A-->>C: 409 Conflict (CollisionException)
+    else Name Unique
+        A->>A: Convert Decimal to Decimal128
+        A->>+D: Insert Product (is_active: True)
+        D-->>-A: Success
+        A-->>-C: 201 Created
     end
-
-    API->>+Database: Request product creation
-    alt Error on insertion
-        API->Client: Error Response
-        note right of Client: Status Code: 500 - Internal Server Error
-        end
-    Database->>-API: Successfully created
-
-    API->>-Client: Successful Response
-    Note right of Client: Status Code: 201 - Created
-
-```
-#### Diagrama de listagem de produtos
-
-```mermaid
-sequenceDiagram
-    title List Products
-    Client->>+API: Request products list
-    Note right of Client: GET /products
-
-    API->>+Database: Request products list
-
-    Database->>-API: Successfully queried
-
-    API->>-Client: Successful Response
-    Note right of Client: Status Code: 200 - Ok
 ```
 
-#### Diagrama de detalhamento de um produto
+## 🛠️ Como Executar
 
-```mermaid
-sequenceDiagram
-    title Get Product
-    Client->>+API: Request product
-    Note right of Client: GET /products/{id}<br/> Path Params:<br/>    - id: <id>
+### Pré-requisitos
 
-    API->>+Database: Request product
-    alt Error on query
-        API->Client: Error Response
-        Note right of Client: Status Code: 500 - Internal Server Error
-    else Product not found
-        API->Client: Error Response
-        Note right of Client: Status Code: 404 - Not Found
-        end
+* ### Python 3.13+
 
-    Database->>-API: Successfully queried
+* ### Poetry
 
-    API->>-Client: Successful Response
-    Note right of Client: Status Code: 200 - Ok
-```
-#### Diagrama de atualização de produto
+* ### MongoDB (Local ou Docker)
 
-```mermaid
-sequenceDiagram
-    title PUT Product
-    Client->>+API: Request product update
-    Note right of Client: PUT /products/{id}<br/> Path Params:<br/>    - id: <id>
+## Instalação e Execução
 
-    API->>API: Validate body
+* ### Instalar dependências
 
-    alt Invalid body
-        API->Client: Error Response
-        Note right of Client: Status Code: 422 - Unprocessable Entity
-    end
+```bash
+poetry install
+````
 
-    API->>+Database: Request product
-    alt Product not found
-        API->Client: Error Response
-        Note right of Client: Status Code: 404 - Not Found
-        end
+* ### Rodar os testes
 
-    Database->>-API: Successfully updated
-
-    API->>-Client: Successful Response
-    Note right of Client: Status Code: 200 - Ok
+```bash
+poetry run pytest
 ```
 
-#### Diagrama de exclusão de produto
+* ### Iniciar o servidor
 
-```mermaid
-sequenceDiagram
-    title Delete Product
-    Client->>+API: Request product delete
-    Note right of Client: DELETE /products/{id}<br/> Path Params:<br/>    - id: <id>
-
-    API->>+Database: Request product
-    alt Product not found
-        API->Client: Error Response
-        Note right of Client: Status Code: 404 - Not Found
-        end
-
-    Database->>-API: Successfully deleted
-
-    API->>-Client: Successful Response
-    Note right of Client: Status Code: 204 - No content
+```bash
+poetry run uvicorn store.main:app --reload
 ```
 
-## Desafio Final
-- Create
-    - Mapear uma exceção, caso dê algum erro de inserção e capturar na controller
-- Update
-    - Modifique o método de patch para retornar uma exceção de Not Found, quando o dado não for encontrado
-    - a exceção deve ser tratada na controller, pra ser retornada uma mensagem amigável pro usuário
-    - ao alterar um dado, a data de updated_at deve corresponder ao time atual, permitir modificar updated_at também
-- Filtros
-    - cadastre produtos com preços diferentes
-    - aplique um filtro de preço, assim: (price > 5000 and price < 8000)
+## 🌐 Interfaces
 
-## Preparar ambiente
+* ### API Docs (Swagger): <http://localhost:8000/docs>
 
-Vamos utilizar Pyenv + Poetry, link de como preparar o ambiente abaixo:
+* ### Frontend: Abra o arquivo index.html no seu navegador
 
-[poetry-documentation](https://github.com/nayannanara/poetry-documentation/blob/master/poetry-documentation.md)
+## 📝 Desafios Concluídos
 
-## Links uteis de documentação
-[mermaid](https://mermaid.js.org/)
+### [x] Create: Exceções mapeadas e capturadas globalmente via CollisionException
 
-[pydantic](https://docs.pydantic.dev/dev/)
+### [x] Update: Método Patch com updated_at automático e tratamento de NotFoundException
 
-[validatores-pydantic](https://docs.pydantic.dev/latest/concepts/validators/)
+### [x] Filtros: Range de preço (min_price e max_price) via query do MongoDB
 
-[model-serializer](https://docs.pydantic.dev/dev/api/functional_serializers/#pydantic.functional_serializers.model_serializer)
-
-[mongo-motor](https://motor.readthedocs.io/en/stable/)
-
-[pytest](https://docs.pytest.org/en/7.4.x/)
+### [x] Soft Delete: Sistema de exclusão lógica para preservação de dados
